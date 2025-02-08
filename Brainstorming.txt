@@ -1,0 +1,5 @@
+Ideas for our application:
+- Spotify
+  - Suggestions based on what you're doing, studying, etc
+  - Dating app adjacent
+-
