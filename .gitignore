@@ -172,3 +172,9 @@ cython_debug/
 
 backend/serviceAccountKey.json
 
+# Environment variables
+*.env
+
+# Firebase credentials
+serviceAccountKey.json
+
