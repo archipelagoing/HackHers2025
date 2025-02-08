@@ -169,12 +169,3 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-backend/serviceAccountKey.json
-
-# Environment variables
-*.env
-
-# Firebase credentials
-serviceAccountKey.json
-
