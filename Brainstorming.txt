@@ -16,7 +16,39 @@ Tech Stack
     React/Vue 
 
 
-All Dependencies to install:
+  All Dependencies to install:
+Create the virtual environment:
+python -m venv venv
+source venv/bin/activate
+
+    How to install dependencies:
+pip install -r requirements.txt
+
+
+BRANCHING AND GIT CONFLICTS:
+- Make sure to pull the latest changes from the main branch before creating a new branch
+
+git checkout -b backend-shreya  # Example for Shreya
+
+- Make sure to always pull the latest changes from the main branch before pushing your changes to the branch
+
+git pull origin main
+
+- Make sure to resolve all conflicts before merging your branch to the main branch
+git commit -m "Added Spotify OAuth authentication"
+
+- Make sure to push your changes to your branch
+
+git push origin backend-shreya  # Example for Shreya
+
+
+
+
+
+
+
+
+
 
 
 API Keys:
