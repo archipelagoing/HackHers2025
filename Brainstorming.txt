@@ -2,4 +2,27 @@ Ideas for our application:
 - Spotify
   - Suggestions based on what you're doing, studying, etc
   - Dating app adjacent
--
+  - FInding compatibility with music 
+    - Get suggestions from your friends own playlist
+
+
+Tech Stack
+  Backend: 
+    Firebase
+    Spotify API
+    Hugging Face API / ClaudeAPI
+
+  Frontend: 
+    React/Vue 
+
+
+All Dependencies to install:
+
+
+API Keys:
+  Spotify API: 
+  Hugging Face API: 
+  Claude API: 
+  Firebase API: 
+
+
