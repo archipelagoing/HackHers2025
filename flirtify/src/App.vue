@@ -31,6 +31,15 @@ header {
   max-height: 100vh;
 }
 
+h1{
+  font-size: 45px;
+}
+
+ul{
+  list-style: none;
+  padding-left: 0px;
+}
+
 .logo {
   display: block;
   margin: 0 auto 2rem;

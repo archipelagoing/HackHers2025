@@ -31,15 +31,70 @@ export default{
   <main>
     <h1>Welcome User!</h1>
     <!-- <h2>Location: </h2> -->
-    <h2>Your favorite genres</h2>
-    <ul>
-      <li>
-        Taylor Swift
-      </li>
-      <li>
-        Ed sheeran
-      </li>
-    </ul>
+    <div class="container-info">
+      <div class="genres">
+        <h2>Your favorite genres</h2>
+        <ul>
+          <li>
+            Taylor Swift
+          </li>
+          <li>
+            Ed sheeran
+          </li>
+          <li>
+            Spider Man
+          </li>
+          <li>
+            Hulk
+          </li>
+          <li>
+            Iron Man
+          </li>
+        </ul>
+     </div>
+     <div class="artists">
+      <h2>Your top artists</h2>
+      <ul>
+        <li>
+          Pop
+        </li>
+        <li>
+          Rock
+        </li>
+        <li>
+          Romance
+        </li>
+        <li>
+          Punk
+        </li>
+        <li>
+          Indie
+        </li>
+      </ul>
+     </div>
+    </div>
+    
     <router-link to="/matches">Find music matches</router-link>
   </main>
 </template>
+
+<style>
+div.container-info{
+  display: flex;
+  flex-direction: row;
+}
+
+ul{
+  list-style: none;
+}
+
+li{
+  display: flex;
+  height: 60px;
+  width: 280px;
+  align-items: center;
+  margin: 10px;
+  border: 2px solid green;
+  padding-left: 15px;
+}
+</style>
