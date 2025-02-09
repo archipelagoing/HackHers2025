@@ -5,14 +5,10 @@ import HelloWorld from './components/HelloWorld.vue'
 
 <template>
   <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
-
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
+    <div>
+      <h1>Flirtify</h1>
       <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
+        <RouterLink to="/login">Login</RouterLink>
       </nav>
     </div>
   </header>
@@ -20,10 +16,28 @@ import HelloWorld from './components/HelloWorld.vue'
   <RouterView />
 </template>
 
-<style scoped>
+<style >
+body{
+  background-color: white;
+  color: black;
+}
+
+nav{
+  color: white;
+}
+
 header {
   line-height: 1.5;
   max-height: 100vh;
+}
+
+h1{
+  font-size: 45px;
+}
+
+ul{
+  list-style: none;
+  padding-left: 0px;
 }
 
 .logo {
