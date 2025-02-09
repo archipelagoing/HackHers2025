@@ -1,6 +1,10 @@
 import os
 import datetime
 from fastapi import APIRouter
+from fastapi import Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
+from fastapi.requests import Request
+from fastapi.sessions import SessionMiddleware
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
@@ -13,9 +17,9 @@ router = APIRouter()
 
 # Spotify authentication setup
 sp_oauth = SpotifyOAuth(
-    client_id=os.getenv("SPOTIPY_CLIENT_ID"),
-    client_secret=os.getenv("SPOTIPY_CLIENT_SECRET"),
-    redirect_uri=os.getenv("SPOTIPY_REDIRECT_URI"),
+    client_id=os.getenv("SPOTIFY_CLIENT_ID"),
+    client_secret=os.getenv("SPOTIFY_CLIENT_SECRET"),
+    redirect_uri=os.getenv("SPOTIFY_REDIRECT_URI"),
     scope="user-top-read playlist-modify-public user-follow-modify"
 )
 
