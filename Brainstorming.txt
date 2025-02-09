@@ -26,9 +26,9 @@ pip install -r requirements.txt
 
 
 BRANCHING AND GIT CONFLICTS:
-- Make sure to pull the latest changes from the main branch before creating a new branch
+- Make sure to PULL the latest changes from the main branch before creating a new branch
 
-git checkout -b backend-shreya  # Example for Shreya
+git checkout -b Backend  # Example for Shreya
 
 - Make sure to always pull the latest changes from the main branch before pushing your changes to the branch
 
@@ -39,7 +39,7 @@ git commit -m "Added Spotify OAuth authentication"
 
 - Make sure to push your changes to your branch
 
-git push origin backend-shreya  # Example for Shreya
+git push origin Backendx  # Example for Shreya
 
 
 
