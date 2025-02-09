@@ -1,8 +1,10 @@
 import os
+import datetime
 from fastapi import APIRouter
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
+from ..database import db
 
 # Load environment variables
 load_dotenv()
@@ -23,6 +25,30 @@ def login():
     return {"auth_url": auth_url}
 
 @router.get("/callback")
-def callback(code: str):
-    token_info = sp_oauth.get_access_token(code)
-    return {"access_token": token_info["access_token"]}
+def spotify_callback(code: str):
+    """Handle Spotify OAuth callback and fetch user profile data."""
+    try:
+        token_info = sp_oauth.get_access_token(code)
+        sp = spotipy.Spotify(auth=token_info["access_token"])
+        user_data = sp.current_user()
+        
+        user_id = user_data["id"]
+        username = user_data["display_name"]
+        profile_pic = user_data["images"][0]["url"] if user_data["images"] else None
+        
+        # Store in Firestore
+        db.collection("users").document(user_id).set({
+            "username": username,
+            "spotify_id": user_id,
+            "profile_pic": profile_pic,
+            "last_login": datetime.datetime.utcnow()
+        }, merge=True)
+
+        return {
+            "message": "User authenticated", 
+            "user_id": user_id,
+            "access_token": token_info["access_token"]
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
