@@ -9,10 +9,13 @@ import HelloWorld from './components/HelloWorld.vue'
 
     <div class="wrapper">
       <HelloWorld msg="You did it!" />
+      <button @click="makeApiCall">Make API Call</button>
+      <div v-if="responseMessage">{{ responseMessage }}</div>  <div v-if="errorMessage">{{ errorMessage }}</div> 
 
       <nav>
         <RouterLink to="/">Home</RouterLink>
         <RouterLink to="/about">About</RouterLink>
+        <RouterLink to="/login">Login</RouterLink>
       </nav>
     </div>
   </header>
