@@ -137,60 +137,58 @@ class FlirtifyMatcher:
 # 🎵 API ENDPOINTS 🎵
 # ============================
 
-@router.post("/match", response_model=MatchResponse)
+@router.post("/match")
 async def match_users(request: MatchRequest):
+    """Match two users based on their music preferences"""
     try:
-        # Get Spotify clients for both users
-        sp1 = get_spotify_client(request.user1_spotify_id)
-        sp2 = get_spotify_client(request.user2_spotify_id)
+        # Get user data from Firestore
+        user1_doc = db.collection('users').document(request.user1_spotify_id).get()
+        user2_doc = db.collection('users').document(request.user2_spotify_id).get()
         
-        # Get music data for both users
-        user1_artists, user1_genres = get_user_top_artists(sp1)
-        user2_artists, user2_genres = get_user_top_artists(sp2)
+        if not user1_doc.exists or not user2_doc.exists:
+            raise HTTPException(status_code=404, detail="One or both users not found")
+            
+        user1_data = user1_doc.to_dict()
+        user2_data = user2_doc.to_dict()
         
-        user1_tracks = get_user_top_tracks(sp1)
-        user2_tracks = get_user_top_tracks(sp2)
-        
-        user1_data = {
-            'artists': user1_artists,
-            'genres': user1_genres,
-            'tracks': user1_tracks,
-            'audio_features': get_audio_features(sp1, [t['id'] for t in sp1.tracks(user1_tracks)['tracks']])
+        # Prepare data for matcher
+        matcher_data1 = {
+            'artists': user1_data['top_artists'],
+            'tracks': user1_data['top_tracks'],
+            'genres': user1_data['top_genres'],
+            'audio_features': np.array([[
+                user1_data['audio_features']['danceability'],
+                user1_data['audio_features']['energy'],
+                user1_data['audio_features']['valence']
+            ]])
         }
         
-        user2_data = {
-            'artists': user2_artists,
-            'genres': user2_genres,
-            'tracks': user2_tracks,
-            'audio_features': get_audio_features(sp2, [t['id'] for t in sp2.tracks(user2_tracks)['tracks']])
+        matcher_data2 = {
+            'artists': user2_data['top_artists'],
+            'tracks': user2_data['top_tracks'],
+            'genres': user2_data['top_genres'],
+            'audio_features': np.array([[
+                user2_data['audio_features']['danceability'],
+                user2_data['audio_features']['energy'],
+                user2_data['audio_features']['valence']
+            ]])
         }
         
-        # Calculate match
+        # Calculate match using FlirtifyMatcher
         matcher = FlirtifyMatcher()
-        match_result = matcher.calculate_match(user1_data, user2_data)
+        match_result = matcher.calculate_match(matcher_data1, matcher_data2)
         
         # Generate compatibility reasons
-        reasons = []
-        if match_result['shared_artists']:
-            reasons.append(f"You both love {', '.join(match_result['shared_artists'][:2])}")
-        if match_result['shared_genres']:
-            reasons.append(f"You share interests in {', '.join(match_result['shared_genres'][:2])}")
-        if match_result['shared_tracks']:
-            reasons.append(f"You both enjoy {', '.join(match_result['shared_tracks'][:2])}")
-        
-        # Store match result in Firebase
-        db.collection('matches').add({
-            'user1_id': request.user1_spotify_id,
-            'user2_id': request.user2_spotify_id,
-            'score': match_result['score'],
-            'strength': match_result['strength'],
-            'timestamp': firestore.SERVER_TIMESTAMP
-        })
-        
+        compatibility_reasons = [
+            f"You share {len(match_result['shared_artists'])} favorite artists",
+            f"You share {len(match_result['shared_tracks'])} favorite tracks",
+            f"You have {len(match_result['shared_genres'])} music genres in common"
+        ]
+            
         return MatchResponse(
             match_score=match_result['score'],
             match_strength=match_result['strength'],
-            compatibility_reasons=reasons,
+            compatibility_reasons=compatibility_reasons,
             shared_artists=match_result['shared_artists'],
             shared_genres=match_result['shared_genres'],
             shared_tracks=match_result['shared_tracks']
