@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from fastapi import Depends, HTTPException, status
 from fastapi.responses import RedirectResponse
 from fastapi.requests import Request
-from fastapi.sessions import SessionMiddleware
+#from fastapi.sessions import SessionMiddleware
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv

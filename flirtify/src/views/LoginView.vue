@@ -1,65 +1,91 @@
 <template>
-  <button @click="makeApiCall">Make API Call</button>
-  <div v-if="responseMessage">{{ responseMessage }}</div>  <div v-if="errorMessage">{{ errorMessage }}</div> </template>
+  <div class="login-container">
+    <h1>Welcome to Flirtify</h1>
+    <button 
+      @click="handleLogin" 
+      :disabled="isLoading"
+      class="spotify-login-btn"
+    >
+      {{ isLoading ? 'Connecting...' : 'Login with Spotify' }}
+    </button>
+    <div v-if="error" class="error-message">
+      {{ error }}
+      <div v-if="detailedError" class="error-details">
+        {{ detailedError }}
+      </div>
+    </div>
+  </div>
+</template>
 
 <script>
-import axios from 'axios';  // You'll need to install axios: npm install axios
-import router from '../router/index.ts'
-import { useRouter } from 'vue-router';
+import { ref } from 'vue';
+import { api } from '../services/api';
 
 export default {
-  setup(){
-    const router = useRouter();
-  },
-  data() {
-    return {
-      responseMessage: null,
-      errorMessage: null
-    };
-  },
-  methods: {
-    async makeApiCall() {
-      this.responseMessage = null; // Clear previous messages
-      this.errorMessage = null;
+  setup() {
+    const isLoading = ref(false);
+    const error = ref(null);
+    const detailedError = ref(null);
+
+    async function handleLogin() {
+      isLoading.value = true;
+      error.value = null;
+      detailedError.value = null;
 
       try {
-        const response = await axios.post(
-            'https://accounts.spotify.com/api/token',
-            'grant_type=client_credentials&client_id=6a32b51f4b6a4a12b8d46b415ad98731&client_secret=6757642ea31a41b8bc1032e5d76aff36',
-            {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                }
-            });
-        
-        console.log('API Response:', response.data.access_token);
-        router.push({ name: 'home'})
-        // this.$router.push({ path: 'home', params: {token: response.access_token}})
-        this.responseMessage = response; // Set the success message
-
-      } catch (error) {
-        console.error('API Error:', error);
-        this.errorMessage = "An error occurred during the API call."; // Set the error message
-        if (error) {
-          // The request was made and the server responded with a status code
-          // that falls out of the range of 2xx
-          console.error("Response data:", error);
-          console.error("Response status:", error);
-          console.error("Response headers:", error);
-          if (error && error) {
-            this.errorMessage = error; // Display server error if available
-          }
-        } else if (error) {
-          // The request was made but no response was received
-          // `error.request` is an instance of XMLHttpRequest in the browser and an instance of
-          // http.ClientRequest in node.js
-          console.error("Request:", error);
-        } else {
-          // Something happened in setting up the request that triggered an Error
-          console.error("Error message:", error);
+        console.log('Starting login process...');
+        const authUrl = await api.spotifyLogin();
+        console.log('Auth URL received:', authUrl);
+        if (!authUrl) {
+          throw new Error('No auth URL received');
         }
+        window.location.href = authUrl;
+      } catch (err) {
+        error.value = 'Failed to connect to Spotify. Please try again.';
+        detailedError.value = `Error: ${err.message}. ${err.response?.data?.detail || ''}`;
+        console.error('Login error:', err);
+      } finally {
+        isLoading.value = false;
       }
     }
+
+    return { handleLogin, isLoading, error, detailedError };
   }
 };
 </script>
+
+<style scoped>
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.spotify-login-btn {
+  background: #1DB954;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.spotify-login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: red;
+  margin-top: 1rem;
+}
+
+.error-details {
+  font-size: 0.8em;
+  margin-top: 0.5rem;
+  color: #666;
+}
+</style>

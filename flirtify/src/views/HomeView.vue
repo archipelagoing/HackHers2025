@@ -1,77 +1,51 @@
 <script>
-import TheWelcome from '../components/TheWelcome.vue'
-import axios from 'axios';  // You'll need to install axios: npm install axios
-import router from '../router/index.ts'
-import { useRoute } from 'vue-router'; // Import useRoute
-import { onMounted } from 'vue';
+import { api } from '../services/api';
+import { ref, onMounted } from 'vue';
 
-export default{
-  setup(){
-    let message = null;
-    const route = useRoute(); // Get the route object
+export default {
+  setup() {
+    const userData = ref(null);
+    const error = ref(null);
 
     onMounted(async () => {
       try {
-        console.log('i work')
-        const response = await axios.get('https://api.spotify.com/v1/me', {});
-        // Process the data
-        message = response.data;
-        // console.log('this is home', data);
-      } catch (error) {
-        console.log('error', error)
+        const userId = localStorage.getItem('user_id');
+        if (userId) {
+          const data = await api.getUserProfile(userId);
+          userData.value = data;
+        }
+      } catch (err) {
+        error.value = err.message;
+        console.error('Error fetching user data:', err);
       }
     });
 
-    return { message };
+    return { userData, error };
   }
 };
 </script>
 
 <template>
   <main>
-    <h1>Welcome User!</h1>
+    <h1>Welcome {{ userData?.username || 'User' }}!</h1>
     <!-- <h2>Location: </h2> -->
     <div class="container-info">
       <div class="genres">
         <h2>Your favorite genres</h2>
         <ul>
-          <li>
-            Taylor Swift
-          </li>
-          <li>
-            Ed sheeran
-          </li>
-          <li>
-            Spider Man
-          </li>
-          <li>
-            Hulk
-          </li>
-          <li>
-            Iron Man
+          <li v-for="genre in userData?.top_genres" :key="genre">
+            {{ genre }}
           </li>
         </ul>
-     </div>
-     <div class="artists">
-      <h2>Your top artists</h2>
-      <ul>
-        <li>
-          Pop
-        </li>
-        <li>
-          Rock
-        </li>
-        <li>
-          Romance
-        </li>
-        <li>
-          Punk
-        </li>
-        <li>
-          Indie
-        </li>
-      </ul>
-     </div>
+      </div>
+      <div class="artists">
+        <h2>Your top artists</h2>
+        <ul>
+          <li v-for="artist in userData?.top_artists" :key="artist">
+            {{ artist }}
+          </li>
+        </ul>
+      </div>
     </div>
     
     <router-link to="/matches">Find music matches</router-link>
