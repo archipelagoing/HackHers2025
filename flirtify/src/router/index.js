@@ -1,44 +1,47 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
-
-const routes = [
-  {
-    path: '/',
-    redirect: '/login'
-  },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import('../views/LoginView.vue')
-  },
-  {
-    path: '/auth/callback',
-    name: 'callback',
-    component: () => import('../views/CallbackView.vue')
-  },
-  {
-    path: '/home',
-    name: 'home',
-    component: () => import('../views/HomeView.vue'),
-    meta: { requiresAuth: true }
-  },
-  {
-    path: '/matches',
-    name: 'matches',
-    component: () => import('../views/MatchesView.vue'),
-    meta: { requiresAuth: true }
-  }
-];
+import HomeView from '../views/HomeView.vue';
+import LoginView from '../views/LoginView.vue';
+import CallbackView from '../views/CallbackView.vue';
+import MatchesView from '../views/MatchesView.vue';
 
 const router = createRouter({
-  history: createWebHistory(),
-  routes
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes: [
+    {
+      path: '/',
+      redirect: '/login'
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView
+    },
+    {
+      path: '/callback',
+      name: 'callback',
+      component: CallbackView
+    },
+    {
+      path: '/home',
+      name: 'home',
+      component: HomeView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/matches',
+      name: 'matches',
+      component: MatchesView,
+      meta: { requiresAuth: true }
+    }
+  ]
 });
 
 router.beforeEach((to, from, next) => {
-  const authStore = useAuthStore();
+  const isAuthenticated = !!localStorage.getItem('access_token');
   
-  if (to.meta.requiresAuth && !authStore.isAuthenticated()) {
+  if (to.path === '/login' || to.path === '/callback') {
+    next();
+  } else if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login');
   } else {
     next();

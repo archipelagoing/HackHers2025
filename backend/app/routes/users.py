@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Header
 from firebase_admin import firestore
 from ..database import db
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
+from spotipy import Spotify
+from ..dependencies import get_spotify_oauth
 
 router = APIRouter()
 
@@ -124,4 +126,49 @@ def get_spotify_client(user_id: str):
         return spotipy.Spotify(auth=token)
     except Exception as e:
         raise Exception(f"Failed to create Spotify client: {str(e)}")
+
+@router.get("/me")
+async def get_user_profile(authorization: str = Header(None)):
+    try:
+        if not authorization:
+            raise HTTPException(status_code=401, detail="No authorization header")
+            
+        token = authorization.replace('Bearer ', '')
+        sp = Spotify(auth=token)
+        
+        # Get more user data
+        user_profile = sp.current_user()
+        top_artists = sp.current_user_top_artists(limit=5)
+        top_tracks = sp.current_user_top_tracks(limit=5)
+        playlists = sp.current_user_playlists(limit=5)
+        
+        # Extract genres
+        all_genres = []
+        for artist in top_artists['items']:
+            all_genres.extend(artist['genres'])
+        unique_genres = list(set(all_genres))[:5]
+        
+        return {
+            "username": user_profile['display_name'],
+            "spotify_id": user_profile['id'],
+            "profile_image": user_profile['images'][0]['url'] if user_profile['images'] else None,
+            "followers": user_profile['followers']['total'],
+            "spotify_url": user_profile['external_urls']['spotify'],
+            "top_artists": [artist['name'] for artist in top_artists['items']],
+            "top_tracks": [{
+                "name": track['name'],
+                "artist": track['artists'][0]['name'],
+                "album": track['album']['name'],
+                "preview_url": track['preview_url']
+            } for track in top_tracks['items']],
+            "top_genres": unique_genres,
+            "playlists": [{
+                "name": playlist['name'],
+                "tracks": playlist['tracks']['total'],
+                "image": playlist['images'][0]['url'] if playlist['images'] else None
+            } for playlist in playlists['items']]
+        }
+    except Exception as e:
+        print(f"Error fetching user profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 

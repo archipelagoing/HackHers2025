@@ -34,15 +34,11 @@ export default {
 
       try {
         console.log('Starting login process...');
-        const authUrl = await api.spotifyLogin();
-        console.log('Auth URL received:', authUrl);
-        if (!authUrl) {
-          throw new Error('No auth URL received');
-        }
-        window.location.href = authUrl;
+        const response = await api.spotifyLogin();
+        console.log('Auth URL received:', response.auth_url);
+        window.location.href = response.auth_url;
       } catch (err) {
         error.value = 'Failed to connect to Spotify. Please try again.';
-        detailedError.value = `Error: ${err.message}. ${err.response?.data?.detail || ''}`;
         console.error('Login error:', err);
       } finally {
         isLoading.value = false;

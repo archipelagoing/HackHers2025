@@ -15,6 +15,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token');
   if (token) {
+    console.log('Adding token to request:', token.substring(0, 10) + '...');
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
@@ -51,6 +52,9 @@ export const api = {
             console.log('Processing callback with code:', code);
             const response = await apiClient.get(`/auth/callback?code=${code}`);
             console.log('Callback response:', response.data);
+            if (response.data.access_token) {
+                localStorage.setItem('access_token', response.data.access_token);
+            }
             return response.data;
         } catch (error) {
             console.error('Callback error:', error);
@@ -60,13 +64,26 @@ export const api = {
 
     // User endpoints
     async getUserProfile() {
-        const response = await apiClient.get('/users/me');
-        return response.data;
+        try {
+            const response = await apiClient.get('/users/me');
+            return response.data;
+        } catch (error) {
+            if (error.response?.status === 401) {
+                // Handle token expiration
+                window.location.href = '/login';
+            }
+            throw error;
+        }
     },
 
     // Match endpoints
     async getMatches() {
-        const response = await apiClient.get('/match/matches');
-        return response.data;
+        try {
+            const response = await apiClient.get('/match/matches');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching matches:', error);
+            throw error;
+        }
     }
 }; 

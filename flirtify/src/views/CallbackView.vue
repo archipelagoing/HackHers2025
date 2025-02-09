@@ -1,47 +1,57 @@
 <template>
-  <div class="callback-container">
-    <div v-if="isLoading" class="loading">
-      Connecting to Spotify...
-    </div>
-    <div v-if="error" class="error-message">{{ error }}</div>
+  <div class="callback">
+    <h2>Logging you in...</h2>
   </div>
 </template>
 
 <script>
-import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useAuthStore } from '../stores/auth';
+import { onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { api } from '../services/api';
 
 export default {
   setup() {
-    const route = useRoute();
     const router = useRouter();
-    const authStore = useAuthStore();
-    const isLoading = ref(true);
-    const error = ref(null);
 
     onMounted(async () => {
-      const code = route.query.code;
-      if (!code) {
-        error.value = 'No authorization code received';
-        isLoading.value = false;
-        return;
-      }
-
       try {
-        const userData = await api.handleCallback(code);
-        authStore.setUser(userData);
+        // Get code from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (!code) {
+          throw new Error('No authorization code found');
+        }
+
+        // Exchange code for token
+        const tokenData = await api.handleCallback(code);
+        
+        // Store token
+        localStorage.setItem('access_token', tokenData.access_token);
+        if (tokenData.refresh_token) {
+          localStorage.setItem('refresh_token', tokenData.refresh_token);
+        }
+
+        // Redirect to home
         router.push('/home');
-      } catch (err) {
-        error.value = 'Failed to complete authentication';
-        console.error('Callback error:', err);
-      } finally {
-        isLoading.value = false;
+      } catch (error) {
+        console.error('Callback error:', error);
+        router.push('/login');
       }
     });
 
-    return { isLoading, error };
+    return {};
   }
-};
-</script> 
+}
+</script>
+
+<style scoped>
+.callback {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1DB954 0%, #191414 100%);
+  color: white;
+}
+</style> 

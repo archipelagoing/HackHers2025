@@ -3,20 +3,17 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from .routes import auth, users, match, ai_claude  # Remove playlists if not using yet
-from spotipy.oauth2 import SpotifyOAuth  # Add this import
+from .dependencies import get_spotify_oauth  # Add this
+from spotipy import Spotify
+from google.cloud import firestore
 
 # Load environment variables
 load_dotenv()
 
 app = FastAPI()
 
-# Add Spotify OAuth configuration
-sp_oauth = SpotifyOAuth(
-    client_id=os.getenv('SPOTIFY_CLIENT_ID'),
-    client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
-    redirect_uri=os.getenv('SPOTIFY_REDIRECT_URI'),
-    scope="user-read-private user-read-email"
-)
+# Get Spotify OAuth instance
+sp_oauth = get_spotify_oauth()
 
 # Add CORS middleware
 app.add_middleware(
@@ -42,21 +39,50 @@ def home():
 @auth.router.get("/login")
 def login():
     try:
-        print("Generating Spotify auth URL...")  # Debug log
-        auth_url = sp_oauth.get_authorize_url()
-        print(f"Auth URL generated: {auth_url}")  # Debug log
-        print("Full response being sent:", {"auth_url": auth_url})  # Debug full response
-        return {"auth_url": auth_url}
+        print("Generating Spotify auth URL...")
+        auth_url = sp_oauth.get_authorize_url()  # Generate Spotify URL
+        print(f"Auth URL generated: {auth_url}")
+        return {"auth_url": auth_url}  # Send URL back to frontend
     except Exception as e:
-        print(f"Error generating auth URL: {str(e)}")  # Debug log
+        print(f"Error generating auth URL: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/auth/callback")
 async def spotify_callback(code: str):
     try:
-        print(f"Received callback with code: {code}")  # Debug log
+        print(f"Received callback with code: {code}")
         token_info = sp_oauth.get_access_token(code)
+        
+        # Create Spotify client with new token
+        sp = Spotify(auth=token_info['access_token'])
+        
+        # Get user data
+        user_profile = sp.current_user()
+        top_artists = sp.current_user_top_artists(limit=10)
+        
+        # Extract genres
+        all_genres = []
+        for artist in top_artists['items']:
+            all_genres.extend(artist['genres'])
+        unique_genres = list(set(all_genres))[:5]
+        
+        # Store user data in Firebase
+        user_data = {
+            "spotify_id": user_profile['id'],
+            "username": user_profile['display_name'],
+            "profile_image": user_profile['images'][0]['url'] if user_profile['images'] else None,
+            "top_artists": [artist['name'] for artist in top_artists['items']],
+            "top_genres": unique_genres,
+            "last_updated": firestore.SERVER_TIMESTAMP
+        }
+        
+        # Save to Firebase
+        db = firestore.Client()
+        db.collection('users').document(user_profile['id']).set(user_data, merge=True)
+        print(f"Stored user data for: {user_profile['display_name']}")
+        
         return token_info
+        
     except Exception as e:
-        print(f"Callback error: {str(e)}")  # Debug log
+        print(f"Callback error details: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))

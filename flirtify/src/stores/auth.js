@@ -1,26 +1,30 @@
-import { ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref(null);
-  const isLoading = ref(false);
-  const error = ref(null);
+export const useAuthStore = defineStore('auth', {
+  state: () => ({
+    token: null,
+    user: null,
+  }),
 
-  function setUser(userData) {
-    user.value = userData;
-    localStorage.setItem('user_id', userData.spotify_id);
-    localStorage.setItem('access_token', userData.access_token);
-  }
+  actions: {
+    setToken(token) {
+      this.token = token;
+    },
 
-  function clearUser() {
-    user.value = null;
-    localStorage.removeItem('user_id');
-    localStorage.removeItem('access_token');
-  }
+    setUser(user) {
+      this.user = user;
+    },
 
-  function isAuthenticated() {
-    return !!localStorage.getItem('access_token');
-  }
+    logout() {
+      this.token = null;
+      this.user = null;
+      localStorage.removeItem('access_token');
+    },
 
-  return { user, isLoading, error, setUser, clearUser, isAuthenticated };
+    isAuthenticated() {
+      return !!this.token;
+    }
+  },
+
+  persist: true  // This will persist the store to localStorage
 }); 

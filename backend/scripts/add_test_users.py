@@ -1,8 +1,10 @@
 # scripts/add_test_users.py
 import os
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials
+from firebase_admin import firestore
 from dotenv import load_dotenv
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
@@ -19,142 +21,104 @@ cred_dict = {
 # Initialize Firebase
 cred = credentials.Certificate(cred_dict)
 firebase_admin.initialize_app(cred)
+
+# Get Firestore client
 db = firestore.client()
 
-# Test user data with more diverse music tastes
-test_users = [
-    {
-        "id": "user_pop_1",
-        "username": "PopLover",
-        "top_artists": ["Drake", "The Weeknd", "Doja Cat", "Post Malone", "Travis Scott"],
-        "audio_features": {
-            "danceability": 0.8,
-            "energy": 0.75,
-            "valence": 0.65,
-            "tempo": 128,
-            "instrumentalness": 0.1
-        }
-    },
-    {
-        "id": "match_1",
-        "username": "RnBSoul",
-        "top_artists": ["The Weeknd", "Drake", "SZA", "Post Malone", "Frank Ocean"],
-        "audio_features": {
-            "danceability": 0.75,
-            "energy": 0.7,
-            "valence": 0.6,
-            "tempo": 125,
-            "instrumentalness": 0.15
-        }
-    },
-    {
-        "id": "match_2",
-        "username": "HipHopHeart",
-        "top_artists": ["Travis Scott", "Drake", "Kendrick Lamar", "Post Malone", "21 Savage"],
-        "audio_features": {
-            "danceability": 0.85,
-            "energy": 0.8,
-            "valence": 0.7,
-            "tempo": 130,
-            "instrumentalness": 0.1
-        }
-    },
-    {
-        "id": "match_3",
-        "username": "PopPrincess",
-        "top_artists": ["Doja Cat", "The Weeknd", "Ariana Grande", "Drake", "Dua Lipa"],
-        "audio_features": {
-            "danceability": 0.8,
-            "energy": 0.75,
-            "valence": 0.65,
-            "tempo": 128,
-            "instrumentalness": 0.1
-        }
-    },
-    {
-        "id": "user_pop_2",
-        "username": "PopStar",
-        "top_artists": ["Drake", "Ariana Grande", "The Weeknd", "Dua Lipa", "Bad Bunny"],
-        "audio_features": {
-            "danceability": 0.75,
-            "energy": 0.7,
-            "valence": 0.7,
-            "tempo": 125,
-            "instrumentalness": 0.15
-        }
-    },
-    {
-        "id": "user_metal",
-        "username": "MetalHead",
-        "top_artists": ["Metallica", "Slipknot", "System of a Down", "Tool", "Rammstein"],
-        "audio_features": {
-            "danceability": 0.4,
-            "energy": 0.9,
-            "valence": 0.3,
-            "tempo": 140,
-            "instrumentalness": 0.3
-        }
-    },
-    {
-        "id": "user_indie_1",
-        "username": "IndieSoul",
-        "top_artists": ["Arctic Monkeys", "The Strokes", "Tame Impala", "The 1975", "Vampire Weekend"],
-        "audio_features": {
-            "danceability": 0.65,
-            "energy": 0.7,
-            "valence": 0.6,
-            "tempo": 122,
-            "instrumentalness": 0.25
-        }
-    },
-    {
-        "id": "user_indie_2",
-        "username": "IndieVibes",
-        "top_artists": ["Tame Impala", "Mac DeMarco", "MGMT", "Arctic Monkeys", "Beach House"],
-        "audio_features": {
-            "danceability": 0.6,
-            "energy": 0.65,
-            "valence": 0.55,
-            "tempo": 120,
-            "instrumentalness": 0.3
-        }
-    },
-    {
-        "id": "user_classical",
-        "username": "ClassicalSoul",
-        "top_artists": ["Ludwig van Beethoven", "Wolfgang Amadeus Mozart", "Johann Sebastian Bach", "Frédéric Chopin", "Claude Debussy"],
-        "audio_features": {
-            "danceability": 0.25,
-            "energy": 0.45,
-            "valence": 0.5,
-            "tempo": 95,
-            "instrumentalness": 0.95
-        }
-    },
-    {
-        "id": "user_electronic",
-        "username": "ElectronicDreams",
-        "top_artists": ["Daft Punk", "Deadmau5", "Aphex Twin", "Chemical Brothers", "Boards of Canada"],
-        "audio_features": {
-            "danceability": 0.85,
-            "energy": 0.9,
-            "valence": 0.7,
-            "tempo": 135,
-            "instrumentalness": 0.8
-        }
-    }
-]
-
 def add_test_users():
-    """Add test users to Firestore"""
-    for user in test_users:
-        user_id = user.pop('id')  # Remove and get the ID
-        try:
-            db.collection('users').document(user_id).set(user)
-            print(f"Added test user: {user_id}")
-        except Exception as e:
-            print(f"Error adding user {user_id}: {e}")
+    test_users = [
+        {
+            "spotify_id": "test_match_1",
+            "username": "Indie Pop Lover",
+            "profile_image": "https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228",
+            "top_artists": [
+                "Lorde",
+                "Taylor Swift",
+                "Mitski",
+                "Phoebe Bridgers",
+                "Japanese Breakfast",
+                "The 1975",
+                "Arctic Monkeys",
+                "Lana Del Rey"
+            ],
+            "top_tracks": [
+                "Solar Power",
+                "Cruel Summer",
+                "Motion Sickness",
+                "I Know The End",
+                "Be Sweet",
+                "Somebody Else",
+                "505",
+                "Video Games"
+            ],
+            "top_genres": [
+                "indie pop",
+                "art pop",
+                "indie rock",
+                "alternative",
+                "bedroom pop",
+                "indie folk",
+                "dream pop"
+            ],
+            "audio_features": {
+                "danceability": 0.65,
+                "energy": 0.70,
+                "valence": 0.55
+            },
+            "last_updated": datetime.now()
+        },
+        {
+            "spotify_id": "test_match_2",
+            "username": "Alternative Vibes",
+            "profile_image": "https://i.scdn.co/image/ab67616d00001e02ff9ca10b55ce82ae553c8228",
+            "top_artists": [
+                "Arctic Monkeys",
+                "The Strokes",
+                "Tame Impala",
+                "Mitski",
+                "The 1975",
+                "Lorde",
+                "Beach House",
+                "Mac DeMarco"
+            ],
+            "top_tracks": [
+                "505",
+                "Do I Wanna Know?",
+                "The Less I Know The Better",
+                "Your Best American Girl",
+                "Somebody Else",
+                "Green Light",
+                "Space Song",
+                "Chamber of Reflection"
+            ],
+            "top_genres": [
+                "indie rock",
+                "alternative",
+                "psychedelic rock",
+                "art pop",
+                "dream pop",
+                "indie pop",
+                "bedroom pop"
+            ],
+            "audio_features": {
+                "danceability": 0.60,
+                "energy": 0.75,
+                "valence": 0.50
+            },
+            "last_updated": datetime.now()
+        }
+    ]
+    
+    try:
+        # Add all test users to Firestore
+        for user in test_users:
+            db.collection('users').document(user['spotify_id']).set(user)
+            print(f"Added test user: {user['username']} with genres: {', '.join(user['top_genres'])}")
+            
+        print(f"Successfully added {len(test_users)} test users!")
+        
+    except Exception as e:
+        print(f"Error adding test users: {str(e)}")
 
 if __name__ == "__main__":
     add_test_users()
-    print("Test users added successfully!")
