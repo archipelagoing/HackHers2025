@@ -1,89 +1,115 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL;
-
-// Create axios instance with interceptors
 const apiClient = axios.create({
-  baseURL: API_URL,
-  withCredentials: true,
+  baseURL: 'http://localhost:8000',
   headers: {
-    'Accept': 'application/json',
     'Content-Type': 'application/json'
   }
 });
 
+// Add request interceptor to include auth token
 apiClient.interceptors.request.use(config => {
   const token = localStorage.getItem('access_token');
   if (token) {
-    console.log('Adding token to request:', token.substring(0, 10) + '...');
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
 export const api = {
-    // Auth endpoints
-    async spotifyLogin() {
-        try {
-            console.log('Attempting Spotify login...');
-            const response = await apiClient.get('/auth/login');
-            console.log('Full login response:', {
-                status: response.status,
-                headers: response.headers,
-                data: response.data
-            });
-            if (!response.data.auth_url) {
-                throw new Error('No auth URL received from backend');
-            }
-            return response.data.auth_url;
-        } catch (error) {
-            console.error('Login error details:', {
-                message: error.message,
-                response: error.response?.data,
-                status: error.response?.status,
-                fullError: error
-            });
-            throw error;
-        }
-    },
+  // Auth endpoints
+  async spotifyLogin() {
+    try {
+      // Test backend connection first
+      try {
+        const healthCheck = await apiClient.get('/health');
+        console.log('Backend health check:', healthCheck.data);
+      } catch (healthError) {
+        console.error('Backend health check failed:', healthError);
+        throw new Error('Backend server not available');
+      }
 
-    async handleCallback(code) {
-        try {
-            console.log('Processing callback with code:', code);
-            const response = await apiClient.get(`/auth/callback?code=${code}`);
-            console.log('Callback response:', response.data);
-            if (response.data.access_token) {
-                localStorage.setItem('access_token', response.data.access_token);
-            }
-            return response.data;
-        } catch (error) {
-            console.error('Callback error:', error);
-            throw error;
+      console.log('Making request to /api/auth/login...');
+      const response = await apiClient.get('/api/auth/login', { 
+        withCredentials: true 
+      });
+      console.log('Login response:', response.data);
+      if (!response.data.auth_url) {
+        console.error('No auth_url in response:', response.data);
+        throw new Error('Invalid response format');
+      }
+      return response.data;
+    } catch (error) {
+      const errorDetails = {
+        name: error.name,
+        message: error.message,
+        isAxiosError: error.isAxiosError,
+        response: {
+          status: error.response?.status,
+          data: error.response?.data,
+          headers: error.response?.headers
+        },
+        request: error.request,
+        config: {
+          url: error.config?.url,
+          method: error.config?.method,
+          baseURL: error.config?.baseURL
         }
-    },
-
-    // User endpoints
-    async getUserProfile() {
-        try {
-            const response = await apiClient.get('/users/me');
-            return response.data;
-        } catch (error) {
-            if (error.response?.status === 401) {
-                // Handle token expiration
-                window.location.href = '/login';
-            }
-            throw error;
-        }
-    },
-
-    // Match endpoints
-    async getMatches() {
-        try {
-            const response = await apiClient.get('/match/matches');
-            return response.data;
-        } catch (error) {
-            console.error('Error fetching matches:', error);
-            throw error;
-        }
+      };
+      console.error('Login error details:', errorDetails);
+      throw error;
     }
-}; 
+  },
+
+  async handleCallback(code) {
+    try {
+      console.log('Making callback request with code:', code);
+      const response = await apiClient.get(`/api/auth/callback?code=${code}`);
+      console.log('Callback response:', response.data);
+      if (response.data.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
+        console.log('Token stored in localStorage');
+        return response.data;
+      } else {
+        console.error('No access token in response:', response.data);
+        throw new Error('No access token received');
+      }
+    } catch (error) {
+      console.error('Callback error:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  },
+
+  // User endpoints
+  async getUserProfile() {
+    try {
+      const response = await apiClient.get('/users/me');
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
+        window.location.href = '/login';
+      }
+      throw error;
+    }
+  },
+
+  // Match endpoints
+  async getMatches() {
+    try {
+      const response = await apiClient.get('/match/matches');
+      console.log('Matches response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching matches:', {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      throw error;
+    }
+  }
+};

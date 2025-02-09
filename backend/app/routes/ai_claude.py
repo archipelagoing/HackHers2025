@@ -1,11 +1,8 @@
-# backend/app/routes/ai_claude.py
-
 import os
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException
 from anthropic import Anthropic
 from app.database import db
-
 
 # Load environment variables
 load_dotenv()
@@ -83,21 +80,84 @@ def generate_personality_bio(user_id: str):
 
     return {"personality_bio": completion}
 
-@router.post("/add-test-user")
-def add_test_user(user_id: str):
+# ==============================
+# 🎼 AI-Curated "First Playlist for You Two"
+# ==============================
+@router.get("/claude-shared-playlist")
+def generate_shared_playlist(user1_id: str, user2_id: str):
     """
-    Add a test user with sample music data to Firestore.
+    Generate an AI-curated playlist description for two users.
     """
-    test_user_data = {
-        "top_artists": ["Taylor Swift", "The Weeknd", "Drake", "Doja Cat", "Post Malone"],
-        "audio_features": {
-            "danceability": 0.8,
-            "energy": 0.7,
-            "valence": 0.6,
-            "tempo": 120,
-            "instrumentalness": 0.1
-        }
-    }
-    
-    db.collection("users").document(user_id).set(test_user_data)
-    return {"message": f"Test user {user_id} created successfully", "data": test_user_data}
+    user1_doc = db.collection("users").document(user1_id).get()
+    user2_doc = db.collection("users").document(user2_id).get()
+
+    if not user1_doc.exists or not user2_doc.exists:
+        return {"error": "One or both users not found"}
+
+    user1_data = user1_doc.to_dict()
+    user2_data = user2_doc.to_dict()
+
+    common_genres = list(set(user1_data.get("top_genres", [])) & set(user2_data.get("top_genres", [])))
+
+    prompt = f"""
+    Alex and Jordan just matched! Their favorite genres are {', '.join(common_genres)}.
+    Generate a **fun, engaging playlist description** that combines their musical vibes 
+    in an exciting way. Keep it energetic and playful!
+    """
+
+    completion = call_claude_api(prompt)
+
+    # Store playlist description in Firestore
+    db.collection("shared_playlists").add({
+        "user1_id": user1_id,
+        "user2_id": user2_id,
+        "playlist_description": completion
+    })
+
+    return {"playlist_description": completion}
+
+# ==============================
+# 🎶 AI-Generated "Perfect Match" Description
+# ==============================
+@router.get("/claude-match-description")
+def generate_match_description(user1_id: str, user2_id: str):
+    """
+    Generate a fun and engaging match description based on shared music tastes.
+    """
+    user1_doc = db.collection("users").document(user1_id).get()
+    user2_doc = db.collection("users").document(user2_id).get()
+
+    if not user1_doc.exists or not user2_doc.exists:
+        return {"error": "One or both users not found"}
+
+    user1_data = user1_doc.to_dict()
+    user2_data = user2_doc.to_dict()
+
+    # Extract relevant data
+    user1_artists = user1_data.get("top_artists", [])
+    user2_artists = user2_data.get("top_artists", [])
+    common_genres = list(set(user1_data.get("top_genres", [])) & set(user2_data.get("top_genres", [])))
+
+    avg_energy = round((user1_data.get("energy", 0.5) + user2_data.get("energy", 0.5)) / 2, 2)
+    avg_tempo = round((user1_data.get("tempo", 120) + user2_data.get("tempo", 120)) / 2, 2)
+
+    prompt = f"""
+    User 1 loves: {', '.join(user1_artists)}. 
+    User 2 loves: {', '.join(user2_artists)}. 
+    They share these common genres: {', '.join(common_genres)}. 
+    Their songs have a similar energy level of {avg_energy} and tempo of {avg_tempo} BPM.
+
+    Write a **fun, engaging description** of why these two users would make a perfect music match.
+    Keep it lively, positive, and relatable.
+    """
+
+    completion = call_claude_api(prompt)
+
+    # Store match description in Firestore
+    db.collection("matches").add({
+        "user1_id": user1_id,
+        "user2_id": user2_id,
+        "match_description": completion
+    })
+
+    return {"match_description": completion}

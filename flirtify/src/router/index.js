@@ -19,13 +19,31 @@ const router = createRouter({
     {
       path: '/callback',
       name: 'callback',
-      component: CallbackView
+      component: CallbackView,
+      props: route => {
+        const code = route.query.code;
+        console.log('Callback route activated with code:', code);
+        return { 
+          code: code,
+          state: route.query.state,
+          error: route.query.error
+        };
+      }
     },
     {
       path: '/home',
       name: 'home',
       component: HomeView,
-      meta: { requiresAuth: true }
+      meta: { requiresAuth: true },
+      beforeEnter: (to, from, next) => {
+        const token = localStorage.getItem('access_token');
+        console.log('Checking auth for /home:', !!token);
+        if (!token) {
+          next('/login');
+        } else {
+          next();
+        }
+      }
     },
     {
       path: '/matches',

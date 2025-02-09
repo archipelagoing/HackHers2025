@@ -207,100 +207,65 @@ async def match_users(request: MatchRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/matches")
-async def get_matches(authorization: str = Header(None)):
+async def get_matches():
+    """Get all matches for the current user"""
     try:
-        if not authorization:
-            raise HTTPException(status_code=401, detail="No authorization header")
-            
-        token = authorization.replace('Bearer ', '')
-        sp = Spotify(auth=token)
-        
-        # Get current user's profile and data
-        current_user = sp.current_user()
-        current_user_id = current_user['id']
-        print(f"Finding matches for user: {current_user['display_name']} ({current_user_id})")
-        
-        # Get current user's music data
-        top_artists = sp.current_user_top_artists(limit=10)
-        top_tracks = sp.current_user_top_tracks(limit=10)
-        
-        # Get audio features for top tracks
-        track_ids = [track['id'] for track in top_tracks['items']]
-        try:
-            audio_features = sp.audio_features(track_ids)
-            if audio_features and any(audio_features):
-                avg_features = np.mean([[
-                    f['danceability'],
-                    f['energy'],
-                    f['valence']
-                ] for f in audio_features if f], axis=0)
-            else:
-                avg_features = np.array([0.5, 0.5, 0.5])  # Default values
-        except Exception as e:
-            print(f"Error getting audio features: {e}")
-            avg_features = np.array([0.5, 0.5, 0.5])  # Default values
-        
-        # Prepare current user's data for matcher
-        current_user_data = {
-            'artists': [artist['name'] for artist in top_artists['items']],
-            'tracks': [track['name'] for track in top_tracks['items']],
-            'genres': list(set(genre for artist in top_artists['items'] for genre in artist['genres'])),
-            'audio_features': np.array([avg_features])
-        }
-        
-        # Get all users from database
+        # Get most recent user
         users_ref = db.collection('users')
-        all_users = list(users_ref.stream())
-        print(f"Found {len(all_users)} total users in database")
+        users = users_ref.order_by('last_login', direction='DESCENDING').limit(1).get()
         
-        # Initialize matcher
-        matcher = FlirtifyMatcher()
         matches = []
-        
-        for user_doc in all_users:
-            user_data = user_doc.to_dict()
-            # Skip current user
-            if user_data.get('spotify_id') == current_user_id:
-                continue
+        for user in users:
+            current_user = user.to_dict()
+            # Get all other users
+            other_users = users_ref.where('spotify_id', '!=', current_user['spotify_id']).get()
             
-            # Prepare other user's data
-            other_user_data = {
-                'artists': user_data.get('top_artists', []),
-                'tracks': user_data.get('top_tracks', []),
-                'genres': user_data.get('top_genres', []),
-                'audio_features': np.array([[0.5, 0.5, 0.5]])  # Default if no audio features
-            }
-            
-            # Calculate match
-            match_result = matcher.calculate_match(current_user_data, other_user_data)
-            match_score = match_result['score']
-            
-            print(f"\nMatching with {user_data.get('username')}:")
-            print(f"Score: {match_score}")
-            print(f"Shared artists: {match_result['shared_artists']}")
-            print(f"Shared tracks: {match_result['shared_tracks']}")
-            print(f"Shared genres: {match_result['shared_genres']}")
-            
-            if match_score > 20:  # Include matches with score above 20
+            for other_user in other_users:
+                other_user_data = other_user.to_dict()
+                # Calculate match score based on shared music tastes
+                match_score = calculate_match_score(current_user, other_user_data)
+                
                 matches.append({
-                    "user_id": user_data.get('spotify_id'),
-                    "username": user_data.get('username'),
-                    "profile_image": user_data.get('profile_image'),
-                    "match_score": round(match_score, 1),
-                    "shared_artists": match_result['shared_artists'],
-                    "shared_tracks": match_result['shared_tracks'],
-                    "shared_genres": match_result['shared_genres']
+                    "user_id": other_user.id,
+                    "username": other_user_data.get('username'),
+                    "profile_image": other_user_data.get('profile_image'),
+                    "match_score": match_score,
+                    "shared_artists": get_shared_artists(current_user, other_user_data),
+                    "shared_genres": get_shared_genres(current_user, other_user_data),
+                    "shared_tracks": get_shared_tracks(current_user, other_user_data)
                 })
-        
-        # Sort matches by score
-        matches.sort(key=lambda x: x['match_score'], reverse=True)
-        print(f"Found {len(matches)} matches above 20 points")
-        
-        return {"matches": matches}
-        
+                
+        return {"matches": sorted(matches, key=lambda x: x['match_score'], reverse=True)}
     except Exception as e:
         print(f"Error getting matches: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+def calculate_match_score(user1, user2):
+    """Calculate match score between two users"""
+    score = 0
+    
+    # Compare artists
+    shared_artists = set(user1.get('top_artists', [])) & set(user2.get('top_artists', []))
+    score += len(shared_artists) * 10
+    
+    # Compare genres
+    shared_genres = set(user1.get('top_genres', [])) & set(user2.get('top_genres', []))
+    score += len(shared_genres) * 5
+    
+    # Compare tracks
+    shared_tracks = set(user1.get('top_tracks', [])) & set(user2.get('top_tracks', []))
+    score += len(shared_tracks) * 8
+    
+    return min(score, 100)  # Cap at 100%
+
+def get_shared_artists(user1, user2):
+    return list(set(user1.get('top_artists', [])) & set(user2.get('top_artists', [])))
+
+def get_shared_genres(user1, user2):
+    return list(set(user1.get('top_genres', [])) & set(user2.get('top_genres', [])))
+
+def get_shared_tracks(user1, user2):
+    return list(set(user1.get('top_tracks', [])) & set(user2.get('top_tracks', [])))
 
 @router.get("/debug/my-genres")
 async def debug_my_genres(authorization: str = Header(None)):

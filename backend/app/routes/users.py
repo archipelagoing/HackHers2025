@@ -172,3 +172,28 @@ async def get_user_profile(authorization: str = Header(None)):
         print(f"Error fetching user profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/me")
+async def get_current_user():
+    """Get the current user's profile"""
+    try:
+        # Get user from Firestore
+        users_ref = db.collection('users')
+        # Get the most recently logged in user
+        users = users_ref.order_by('last_login', direction='DESCENDING').limit(1).get()
+        
+        for user in users:
+            user_data = user.to_dict()
+            return {
+                "username": user_data.get("username"),
+                "spotify_id": user_data.get("spotify_id"),
+                "profile_image": user_data.get("profile_image"),
+                "top_artists": user_data.get("top_artists", []),
+                "top_tracks": user_data.get("top_tracks", []),
+                "top_genres": user_data.get("top_genres", [])
+            }
+            
+        raise HTTPException(status_code=404, detail="User not found")
+    except Exception as e:
+        print(f"Error getting user: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
