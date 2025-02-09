@@ -5,8 +5,12 @@
 <script>
 import axios from 'axios';  // You'll need to install axios: npm install axios
 import router from '../router/index.ts'
+import { useRouter } from 'vue-router';
 
 export default {
+  setup(){
+    const router = useRouter();
+  },
   data() {
     return {
       responseMessage: null,
@@ -27,8 +31,10 @@ export default {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
             });
-        this.$router.push('/home')
-        console.log('API Response:', response);
+        
+        console.log('API Response:', response.data.access_token);
+        router.push({ name: 'home'})
+        // this.$router.push({ path: 'home', params: {token: response.access_token}})
         this.responseMessage = response; // Set the success message
 
       } catch (error) {
